@@ -1,152 +1,81 @@
-import tkinter as tk
-import re
+def password(password_txt):
+    score = 0
+    tips = [] 
 
-class PasswordStrengthChecker:
-    def __init__(self, root):
-        """
-        Initialize the GUI application.
-        """
-        self.root = root
-        self.root.title("Password Strength Checker")
-        # Increased height slightly to fit the checkbox and feedback area
-        self.root.geometry("400x350")
-        self.root.resizable(False, False)
+    pwd = len(password_txt)   # unnecessary variable, but feels natural
+    if pwd >= 8:
+        score += 1
+    else:
+        tips.append("Try making it at least 8 characters long . ")
 
-        # --- UI COMPONENTS ---
+    # uppercase check — using the old ASCII range trick
+    if any('A' <= ch <= 'Z' for ch in password_txt):
+        score += 1
+    else:
+        tips.append("You might want to toss in an uppercase letter.")
 
-        # Title Label
-        self.title_label = tk.Label(
-            root, 
-            text="Check Your Password Strength", 
-            font=("Helvetica", 14, "bold"),
-            pady=15
-        )
-        self.title_label.pack()
+    # lowercase letters
+    if any('a' <= ch <= 'z' for ch in password_txt):
+        score += 1
+    else:
+        tips.append("Add a lowercase letter or two.")
 
-        # Password Entry Label
-        self.pass_label = tk.Label(root, text="Enter Password:")
-        self.pass_label.pack()
+    # digits (I always forget that these are '0' through '9', lol)
+    has_digit = any('0' <= c <= '9' for c in password_txt)  # pointless variable but oh well
+    if has_digit:
+        score += 1
+    else:
+        tips.append("Put at least one digit in there . ")
+        
+    weird_chars = "!@#$%^&*(),.?\":{}|<>"
+    if any(c in weird_chars for c in password_txt):
+        score += 1
+    else:
+        tips.append("Consider adding a special character (@, #, $, etc.).")
 
-        # Entry Box 
-        # show="*" is the default, but we can change this dynamically
-        self.password_entry = tk.Entry(root, width=30, show="*", font=("Arial", 12))
-        self.password_entry.pack(pady=5)
+    
+    if score == 5:
+        grade = "STRONG"
+    elif score >= 3:
+        grade = "MEDIUM"
+    else:
+        grade = "WEAK"
 
-        # --- NEW FEATURE: SHOW PASSWORD CHECKBOX ---
-        self.show_pass_var = tk.IntVar() # Variable to track checkbox state (0 or 1)
-        self.show_pass_check = tk.Checkbutton(
-            root, 
-            text="Show Password", 
-            variable=self.show_pass_var, 
-            command=self.toggle_password # Calls function when clicked
-        )
-        self.show_pass_check.pack()
-        # -------------------------------------------
+    return grade, tips
+def main():
+    used = 0
+    tries = 1 # probably doesn't need to be here, but I like having defaults
 
-        # Check Button
-        self.check_button = tk.Button(
-            root, 
-            text="Check Strength", 
-            command=self.check_strength, 
-            bg="#007bff", 
-            fg="white", 
-            font=("Arial", 10, "bold")
-        )
-        self.check_button.pack(pady=15)
+    # Initial prompt
+    user = input("Alright, type a password and let’s check its strength: ")
+    lvl, advice = password(user)
 
-        # Result Label 
-        self.result_label = tk.Label(
-            root, 
-            text="", 
-            font=("Helvetica", 12, "bold")
-        )
-        self.result_label.pack()
+    # If not strong, ask how many tries the person wants
+    if lvl != "STRONG":
+        try:
+            tries = int(input("Not quite strong. How many more tries do you want ? "))
+        except ValueError:
+            print("Oops, that's not a number. I’ll just give you one more try . ")
+            tries = 1
 
-        # Feedback Label
-        self.feedback_label = tk.Label(
-            root, 
-            text="", 
-            fg="gray", 
-            font=("Arial", 9),
-            justify=tk.LEFT # Align feedback text to the left
-        )
-        self.feedback_label.pack(pady=5)
+    # Loop through retries
+    
+    while lvl != "STRONG" and used < tries:
+        print(f"Password Strength: {lvl}")
+        if advice:
+            print("Ways you could improve it (just my two cents):")
+            for a in advice:
+                print("-", a)
+        used += 1
 
-    def toggle_password(self):
-        """
-        Toggles the visibility of the password characters by configuring the 'show' attribute.
-        """
-        if self.show_pass_var.get() == 1:
-            # If checkbox is checked (value is 1), remove the masking character
-            self.password_entry.config(show="")
-        else:
-            # If unchecked (value is 0), mask characters with asterisk
-            self.password_entry.config(show="*")
+        # unnecessary f-string but I think it looks nice
+        user_pwd = input(f"Try #{used}: Enter a stronger password: ")
+        lvl, advice = password(user_pwd)
 
-    def check_strength(self):
-        """
-        Logic to determine password strength based on criteria (length,
-        uppercase, lowercase, number, special character).
-        """
-        password = self.password_entry.get()
-        score = 0
-        feedback_messages = []
-
-        # 1. Length Check
-        if len(password) >= 8:
-            score += 1
-        else:
-            feedback_messages.append("- Make it at least 8 characters long")
-
-        # 2. Uppercase Check
-        if re.search(r"[A-Z]", password):
-            score += 1
-        else:
-            feedback_messages.append("- Add uppercase letters (A-Z)")
-
-        # 3. Lowercase Check
-        if re.search(r"[a-z]", password):
-            score += 1
-        else:
-            feedback_messages.append("- Add lowercase letters (a-z)")
-
-        # 4. Number Check
-        if re.search(r"[0-9]", password):
-            score += 1
-        else:
-            feedback_messages.append("- Add numbers (0-9)")
-
-        # 5. Special Character Check
-        # Regex covers common special characters
-        if re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-            score += 1
-        else:
-            feedback_messages.append("- Add special characters (@, #, $, etc.)")
-
-        self.update_ui(score, feedback_messages, len(password))
-
-    def update_ui(self, score, feedback, length):
-        """
-        Updates the result labels based on the calculated score.
-        """
-        if length == 0:
-            self.result_label.config(text="Please enter a password", fg="black")
-            self.feedback_label.config(text="")
-            return
-
-        # Determine strength level based on score (max score is 5)
-        if score == 5:
-            self.result_label.config(text="STRONG PASSWORD", fg="green")
-            self.feedback_label.config(text="Great job!")
-        elif score >= 3:
-            self.result_label.config(text="MEDIUM STRENGTH (Score: {}/5)".format(score), fg="orange")
-            self.feedback_label.config(text="To improve, you need to:\n" + "\n".join(feedback))
-        else:
-            self.result_label.config(text="WEAK PASSWORD (Score: {}/5)".format(score), fg="red")
-            self.feedback_label.config(text="To improve, you need to:\n" + "\n".join(feedback))
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    # Ensure the class is initialized with the correct constructor name
-    app = PasswordStrengthChecker(root)
-    root.mainloop()
+    # Wrap-up messages
+    if lvl == "STRONG":
+        print("Password Strength : STRONG")
+        print("Nice job — that one’s solid !")
+    else:
+       print("All done. Couldn't get a strong password this time . ")
+main()
